@@ -29,6 +29,7 @@ struct App {
     selected_index: usize,
     start_index: usize,
     path: String,
+    template_path: String,
     editor: String,
 }
 
@@ -39,13 +40,16 @@ fn main() -> Result<(), io::Error> {
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
 
-    let diary_dir = env::var("DIARY_DIR")
-        .expect("DIARY_DIR environment variable");
+    let diary_dir = env::var("RDIARY_DIARY_DIR")
+        .expect("RDIARY_DIARY_DIR environment variable");
     let mut app = App {
         dates: backend::get_entries_in_path(&diary_dir),
         selected_index: 0,
         start_index: 0,
         path: diary_dir,
+        template_path: env::var("RDIARY_TEMPLATE_PATH").unwrap_or(
+            String::new()
+        ),
         editor: env::var("EDITOR").unwrap_or(String::from("vim")),
     };
 
@@ -148,7 +152,11 @@ fn ui<B: tui::backend::Backend>(f: &mut tui::Frame<B>, app: &mut App) {
 
 fn edit_entry(app: &App, entry: &backend::DiaryEntry) -> io::Result<()> {
     if !Path::new(&entry.path).exists() {
-        std::fs::File::create(&entry.path)?;
+        if app.template_path.is_empty() {
+            std::fs::File::create(&entry.path)?;
+        } else {
+            std::fs::copy(&app.template_path, &entry.path)?;
+        }
     }
 
     disable_raw_mode()?;

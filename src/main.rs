@@ -1,7 +1,7 @@
-use std::fs;
 use std::io;
 use std::path::Path;
 use std::env;
+use std::process::Command;
 
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -28,30 +28,25 @@ struct App {
     dates: Vec<backend::DiaryEntry>,
     selected_index: usize,
     start_index: usize,
+    path: String,
+    editor: String,
 }
 
 fn main() -> Result<(), io::Error> {
-    let config_home = format!("{}/tuidiary",
-        env::var("XDG_CONFIG_HOME").unwrap_or(String::from("~/.config")));
-    if !Path::new(&config_home).exists() {
-        let _ = fs::create_dir_all(config_home);
-    }
-
-    let diary_dir = env::var("DIARY_DIR")
-        .expect("DIARY_DIR environment variable");
-
-    let config_editor = env::var("EDITOR").unwrap_or(String::from("vim"));
-
     enable_raw_mode()?;
     execute!(io::stdout(), EnterAlternateScreen)?;
 
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
 
+    let diary_dir = env::var("DIARY_DIR")
+        .expect("DIARY_DIR environment variable");
     let mut app = App {
-        dates: backend::get_entries_in_path(diary_dir.clone()),
+        dates: backend::get_entries_in_path(&diary_dir),
         selected_index: 0,
         start_index: 0,
+        path: diary_dir,
+        editor: env::var("EDITOR").unwrap_or(String::from("vim")),
     };
 
     loop {
@@ -71,14 +66,13 @@ fn main() -> Result<(), io::Error> {
                     }
                 }
                 KeyCode::Enter => {
-                    backend::edit_entry(&config_editor,
-                                        &app.dates[app.selected_index])?;
+                    edit_entry(&app, &app.dates[app.selected_index])?;
                     terminal.clear()?;
 
                     // TODO Maybe this refresh should only be done when the
                     //      entry did not exist previously.
                     app.dates.clear();
-                    app.dates = backend::get_entries_in_path(diary_dir.clone());
+                    app.dates = backend::get_entries_in_path(&app.path);
                 }
                 _ => {}
             }
@@ -150,4 +144,24 @@ fn ui<B: tui::backend::Backend>(f: &mut tui::Frame<B>, app: &mut App) {
     );
 
     f.render_widget(preview, chunks[1]);
+}
+
+fn edit_entry(app: &App, entry: &backend::DiaryEntry) -> io::Result<()> {
+    if !Path::new(&entry.path).exists() {
+        std::fs::File::create(&entry.path)?;
+    }
+
+    disable_raw_mode()?;
+    execute!(io::stdout(), LeaveAlternateScreen)?;
+
+    let status = Command::new(&app.editor).arg(&entry.path).status()?;
+
+    if !status.success() {
+        eprintln!("Failed to open editor");
+    }
+    
+    enable_raw_mode()?;
+    execute!(io::stdout(), EnterAlternateScreen)?;
+
+    Ok(())
 }

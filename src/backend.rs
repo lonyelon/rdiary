@@ -1,18 +1,7 @@
-use std::fs::{self, File};
-use std::io;
+use std::fs;
 use std::path::Path;
-use std::process::Command;
 
 use chrono::{Local, NaiveDate};
-use crossterm::{
-    execute,
-    terminal::{
-        disable_raw_mode,
-        enable_raw_mode,
-        EnterAlternateScreen,
-        LeaveAlternateScreen
-    },
-};
 
 #[derive(Debug, Clone)]
 pub struct DiaryEntry {
@@ -21,7 +10,7 @@ pub struct DiaryEntry {
     pub exists: bool,
 }
 
-pub fn get_entries_in_path(path: String) -> Vec<DiaryEntry> {
+pub fn get_entries_in_path(path: &String) -> Vec<DiaryEntry> {
     let mut dates = Vec::new();
 
     let files = fs::read_dir(&path).unwrap();
@@ -98,24 +87,4 @@ fn get_entry_path(base_path: &str, date: &NaiveDate) -> (String, bool) {
     } else {
         (filename_md, false)
     }
-}
-
-pub fn edit_entry(editor: &String, entry: &DiaryEntry) -> io::Result<()> {
-    if !Path::new(&entry.path).exists() {
-        File::create(&entry.path)?;
-    }
-
-    disable_raw_mode()?;
-    execute!(io::stdout(), LeaveAlternateScreen)?;
-
-    let status = Command::new(editor).arg(&entry.path).status()?;
-
-    if !status.success() {
-        eprintln!("Failed to open editor");
-    }
-    
-    enable_raw_mode()?;
-    execute!(io::stdout(), EnterAlternateScreen)?;
-
-    Ok(())
 }

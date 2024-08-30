@@ -16,7 +16,7 @@ use crossterm::{
 use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Terminal,
@@ -94,7 +94,7 @@ fn ui<B: tui::backend::Backend>(f: &mut tui::Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
-            [Constraint::Percentage(20), Constraint::Percentage(80)].as_ref()
+            [Constraint::Percentage(15), Constraint::Percentage(80)].as_ref()
         ).split(f.size());
 
     let left_panel_height = chunks[0].height as usize;
@@ -113,17 +113,20 @@ fn ui<B: tui::backend::Backend>(f: &mut tui::Frame<B>, app: &mut App) {
         .take(visible_items)
         .enumerate()
         .map(|(i, &ref date)| {
+            let mut style = Style::default();
+            if !date.exists {
+                style = style.fg(Color::Red).add_modifier(Modifier::ITALIC);
+            }
+            if i == app.selected_index - app.start_index {
+                style = style.add_modifier(Modifier::BOLD);
+            }
             ListItem::new(Spans::from(vec![Span::styled(
                 if i == app.selected_index - app.start_index {
-                    date.date.format("=> %Y-%m-%d").to_string()
+                    date.date.format("%Y-%m-%d <=").to_string()
                 } else {
                     date.date.format("%Y-%m-%d").to_string()
                 },
-                if date.exists {
-                    Style::default()
-                } else {
-                    Style::default().add_modifier(Modifier::BOLD)
-                },
+                style,
             )]))
         })
         .collect();

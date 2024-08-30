@@ -34,12 +34,6 @@ struct App {
 }
 
 fn main() -> Result<(), io::Error> {
-    enable_raw_mode()?;
-    execute!(io::stdout(), EnterAlternateScreen)?;
-
-    let backend = CrosstermBackend::new(io::stdout());
-    let mut terminal = Terminal::new(backend)?;
-
     let diary_dir = env::var("RDIARY_DIARY_DIR")
         .expect("RDIARY_DIARY_DIR environment variable");
     let mut app = App {
@@ -52,6 +46,12 @@ fn main() -> Result<(), io::Error> {
         ),
         editor: env::var("EDITOR").unwrap_or(String::from("vim")),
     };
+
+    enable_raw_mode()?;
+    execute!(io::stdout(), EnterAlternateScreen)?;
+
+    let backend = CrosstermBackend::new(io::stdout());
+    let mut terminal = Terminal::new(backend)?;
 
     loop {
         terminal.draw(|f| ui(f, &mut app))?;

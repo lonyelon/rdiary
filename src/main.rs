@@ -3,7 +3,6 @@ use std::io;
 use std::path::Path;
 use std::env;
 
-use chrono::NaiveDate;
 use crossterm::{
     event::{self, Event, KeyCode},
     execute,
@@ -26,10 +25,9 @@ use tui::{
 mod backend;
 
 struct App {
-    dates: Vec<NaiveDate>,
+    dates: Vec<backend::DiaryEntry>,
     selected_index: usize,
     start_index: usize,
-    base_path: String,
 }
 
 fn main() -> Result<(), io::Error> {
@@ -54,7 +52,6 @@ fn main() -> Result<(), io::Error> {
         dates: backend::get_entries_in_path(diary_dir.clone()),
         selected_index: 0,
         start_index: 0,
-        base_path: diary_dir,
     };
 
     loop {
@@ -74,9 +71,14 @@ fn main() -> Result<(), io::Error> {
                     }
                 }
                 KeyCode::Enter => {
-                    let date = app.dates[app.selected_index];
-                    backend::edit_entry(&config_editor, &app.base_path, &date)?;
+                    backend::edit_entry(&config_editor,
+                                        &app.dates[app.selected_index])?;
                     terminal.clear()?;
+
+                    // TODO Maybe this refresh should only be done when the
+                    //      entry did not exist previously.
+                    app.dates.clear();
+                    app.dates = backend::get_entries_in_path(diary_dir.clone());
                 }
                 _ => {}
             }
@@ -110,14 +112,14 @@ fn ui<B: tui::backend::Backend>(f: &mut tui::Frame<B>, app: &mut App) {
         .skip(app.start_index)
         .take(visible_items)
         .enumerate()
-        .map(|(i, &date)| {
+        .map(|(i, &ref date)| {
             ListItem::new(Spans::from(vec![Span::styled(
                 if i == app.selected_index - app.start_index {
-                    date.format("=> %Y-%m-%d").to_string()
+                    date.date.format("=> %Y-%m-%d").to_string()
                 } else {
-                    date.format("%Y-%m-%d").to_string()
+                    date.date.format("%Y-%m-%d").to_string()
                 },
-                if backend::get_entry_path(&app.base_path, &date).exists {
+                if date.exists {
                     Style::default()
                 } else {
                     Style::default().add_modifier(Modifier::BOLD)
@@ -132,15 +134,15 @@ fn ui<B: tui::backend::Backend>(f: &mut tui::Frame<B>, app: &mut App) {
 
     f.render_widget(dates_list, chunks[0]);
 
-    let content = if let Some(date) = app.dates.get(app.selected_index) {
-        backend::read_entry(&app.base_path, date)
+    let content = if let Some(entry) = app.dates.get(app.selected_index) {
+        backend::read_entry(&entry)
     } else {
         String::new()
     };
 
     let preview = Paragraph::new(content).block(
         Block::default().title(
-            app.dates[app.selected_index].format("%A %Y-%m-%d").to_string()
+            app.dates[app.selected_index].date.format("%A %Y-%m-%d").to_string()
         ).borders(Borders::ALL)
     );
 

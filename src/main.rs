@@ -59,6 +59,13 @@ fn main() -> Result<(), io::Error> {
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => break,
+                KeyCode::Char('g') => {
+                    app.selected_index = app.dates.len() - 1;
+                }
+                KeyCode::Char('G') => {
+                    app.selected_index = 0;
+                    app.start_index = 0;
+                }
                 KeyCode::Up => {
                     if app.selected_index > 0 {
                         app.selected_index -= 1;
@@ -98,8 +105,9 @@ fn ui<B: tui::backend::Backend>(f: &mut tui::Frame<B>, app: &mut App) {
     let left_panel_height = chunks[0].height as usize;
     let visible_items = left_panel_height - 2;
 
-    if app.selected_index > visible_items + app.start_index - 1 {
-        app.start_index += 1;
+    let lowest_viewable_item = visible_items + app.start_index - 1;
+    if app.selected_index > lowest_viewable_item {
+        app.start_index += app.selected_index - lowest_viewable_item;
     } else if app.selected_index < app.start_index {
         app.start_index -= 1;
     }

@@ -55,6 +55,7 @@ pub fn get_entries_in_path(path: &String) -> Vec<DiaryEntry> {
         }
     }
 
+    // Load 100 days before the first entry.
     for j in 0..100 {
         let date_loop = today - chrono::Duration::days(i + j);
         dates.push(DiaryEntry {
@@ -76,7 +77,7 @@ pub fn read_entry(entry: &DiaryEntry) -> String {
 }
 
 // Return the path for the date file and wether it actually exists or not.
-fn get_entry_path(base_path: &str, date: &NaiveDate) -> (String, bool) {
+pub fn get_entry_path(base_path: &str, date: &NaiveDate) -> (String, bool) {
     let filename_org = format!("{}/{}.org", base_path, date.format("%Y-%m-%d"));
     let filename_md = format!("{}/{}.md", base_path, date.format("%Y-%m-%d"));
 

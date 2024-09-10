@@ -72,9 +72,20 @@ fn main() -> Result<(), io::Error> {
                     }
                 }
                 KeyCode::Down => {
-                    if app.selected_index < app.dates.len() - 1 {
-                        app.selected_index += 1;
+                    // If we are at the bottom of the list, load 100 more days
+                    // to make the scroll infinite.
+                    if app.selected_index >= app.dates.len() - 1 {
+                        for i in 0..100 {
+                            let date_loop = app.dates[app.selected_index].date - chrono::Duration::days(i + 1);
+                            app.dates.push(backend::DiaryEntry {
+                                path: backend::get_entry_path(&app.path.as_str(), &date_loop).0,
+                                date: date_loop,
+                                exists: false,
+                            });
+                        }
                     }
+
+                    app.selected_index += 1;
                 }
                 KeyCode::Enter => {
                     edit_entry(&app, &app.dates[app.selected_index])?;

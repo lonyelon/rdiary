@@ -1,5 +1,5 @@
 [package]
-name = "diary-writer"
+name = "rdiary"
 version = "0.1.0"
 edition = "2021"
 

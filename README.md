@@ -6,7 +6,7 @@ This is a very personal app, as it is what I use to write it. I will add feature
 
 ## How to use
 
-You need to export the `DIARY_DIR` environment variable to specify the directory where the files will go, for example:
+You need to export the `RDIARY_DIARY_DIR` environment variable to specify the directory where the files will go, for example:
 
 ```sh
 export RDIARY_DIARY_DIR=~/Documents/diary
